@@ -1,46 +1,219 @@
-# Getting Started with Create React App
+# TactiMon
+A tactical RPG combining Fire Emblem's grid-based combat with Pokemon's creature battles and type system, featuring sandbox exploration and team building.
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## Game Overview
+TactiMon is a tactical RPG where players control a Pokemon in a sandbox environment, engaging in grid-based combat and recruiting other Pokemon to their team. The game combines tactical positioning with Pokemon-style battles in an explorable world.
 
-## Available Scripts
+### Core Mechanics
 
-In the project directory, you can run:
+#### Movement System
+- Grid-based movement with ranges determined by Pokemon's speed stat
+- Terrain effects (grass increases evasion, water slows ground types, etc.)
+- Map transition system requiring team proximity to leader
+- Simple in-map battle animations without scene transitions
 
-### `npm start`
+#### Combat System
+- Turn-based combat using Fire Emblem's team-phase system
+- Pokemon-style type effectiveness
+- Friendly fire mechanics
+- Attack Categories:
+  1. Basic Melee (1 range, 1 AoE)
+  2. Simple Ranged (2-3 range, 1 AoE)
+  3. Line Effect (1 range, 2-3 AoE in line)
+  4. Small Surrounding (1 range, 4 orthogonal spaces)
+  5. Medium Surrounding (1 range, 8 adjacent spaces)
+  6. Large Surrounding (2 range, all spaces within 2)
+  7. Medium Range AoE (2-4 range, 3-5 AoE)
+  8. Long Range Precise (3-5 range, 1 AoE)
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+#### Pokemon System
+- Stats: HP, Attack, Defense, Sp. Attack, Sp. Defense, Speed
+- Simplified Experience System:
+  - Gain XP equal to defeated Pokemon's level
+  - Required XP equals current level
+  - Excess XP carries over to next level
+- Recruitment System:
+  - Success chance based on:
+    - Level difference
+    - Target's remaining HP%
+    - Status conditions
+  - Must attempt recruitment while in range
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+#### World System
+- Zelda-style map transitions
+- Dynamic Pokemon spawning
+- Territory control mechanics
+- Team proximity requirements for map transitions
+- Various terrain types affecting movement and combat
 
-### `npm test`
+## Technical Implementation
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Architecture
+```
+src/
+├── components/
+│   ├── Map/
+│   │   ├── Grid.tsx
+│   │   ├── Tile.tsx
+│   │   ├── MapTransition.tsx
+│   │   └── Unit.tsx
+│   ├── Battle/
+│   │   ├── BattleScene.tsx
+│   │   ├── AttackPatterns.tsx
+│   │   ├── DamageCalculation.tsx
+│   │   └── RecruitmentSystem.tsx
+│   └── UI/
+│       ├── UnitInfo.tsx
+│       ├── MovementRange.tsx
+│       ├── AttackPreview.tsx
+│       └── TeamStatus.tsx
+├── store/
+│   ├── gameState.ts
+│   ├── mapState.ts
+│   ├── teamState.ts
+│   └── battleState.ts
+├── types/
+│   ├── Pokemon.ts
+│   ├── Attack.ts
+│   ├── Terrain.ts
+│   └── MapSection.ts
+└── utils/
+    ├── pathfinding.ts
+    ├── combatCalculator.ts
+    ├── experienceManager.ts
+    ├── recruitmentCalculator.ts
+    └── typeEffectiveness.ts
+```
 
-### `npm run build`
+### Core Systems Implementation
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+1. **Pokemon Management**
+```typescript
+interface BaseStats {
+  hp: number;
+  attack: number;
+  defense: number;
+  spAttack: number;
+  spDefense: number;
+  speed: number;
+}
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+interface Evolution {
+  level: number;
+  evolvesInto: number; // Pokemon ID
+  conditions?: {
+    item?: string;
+    timeOfDay?: 'day' | 'night';
+    friendship?: number;
+    // Add other conditions as needed
+  };
+}
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+interface LearnableMove {
+  level: number;
+  moveId: number;
+}
 
-### `npm run eject`
+interface PokemonTemplate {
+  id: number;
+  name: string;
+  types: ElementalType[];
+  baseStats: BaseStats;
+  learnableMoves: LearnableMove[];
+  evolution?: Evolution;
+  baseExperienceYield: number;
+  recruitDifficulty: number; // Base difficulty for recruiting this Pokemon
+}
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+interface Pokemon {
+  templateId: number; // References PokemonTemplate
+  nickname?: string;
+  level: number;
+  experience: number;
+  currentStats: {
+    hp: number;
+    currentHp: number;
+    attack: number;
+    defense: number;
+    spAttack: number;
+    spDefense: number;
+    speed: number;
+  };
+  moves: Move[]; // Current moves (max 4)
+  position: Position;
+  isLeader: boolean;
+  status?: StatusEffect;
+  friendship: number;
+}
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+interface Move {
+  name: string;
+  type: ElementalType;
+  category: AttackCategory;
+  range: Range;
+  areaOfEffect: AreaOfEffect;
+  power: number;
+  accuracy: number;
+  effects?: StatusEffect[];
+}
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+2. **Map System**
+```typescript
+interface MapSection {
+  id: string;
+  terrain: TerrainType[][];
+  spawnPoints: SpawnPoint[];
+  connections: {
+    north?: string;
+    south?: string;
+    east?: string;
+    west?: string;
+  };
+}
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+interface Position {
+  x: number;
+  y: number;
+  mapId: string;
+}
+```
 
-## Learn More
+### Development Phases
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+1. **Phase 1: Core Systems**
+   - Grid-based map rendering
+   - Basic Pokemon movement
+   - Simple combat system
+   - Turn order management
+   - Keyboard controls
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+2. **Phase 2: Combat & Recruitment**
+   - Attack pattern implementation
+   - Area of effect preview system
+   - Damage calculation
+   - Basic recruitment system
+   - Team management
+
+3. **Phase 3: World System**
+   - Map transition system
+   - Spawn system
+   - Leader mechanics
+   - Territory control
+   - Advanced AI behaviors
+
+4. **Phase 4: Polish**
+   - Battle animations
+   - Sound effects
+   - UI improvements
+   - Save/Load system
+   - Tutorial system
+
+### Technical Considerations
+
+- Using React with TypeScript for type safety and component architecture
+- Starting with CSS Grid for the map system
+- Implementing keyboard controls (arrow keys, enter, etc.) for gameboy-style control
+- Using Canvas for attack pattern previews and animations
+- Implementing a custom pathfinding system for movement range calculation
+- Using React Context for state management between components
