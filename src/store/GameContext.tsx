@@ -2,6 +2,7 @@
 import React, { createContext, useReducer, ReactNode } from 'react';
 import { GameState } from '../types/game';
 import { Position } from '../types/common';
+import { selectRandomMap } from '../config/maps';
 
 type GameAction =
 	| { type: 'SELECT_TILE'; payload: Position }
@@ -11,24 +12,12 @@ type GameAction =
 
 const initialState: GameState = {
 	mapState: {
-		tiles: Array(8)
-			.fill(null)
-			.map((_, y) =>
-				Array(8)
-					.fill(null)
-					.map((_, x) => ({
-						position: { x, y },
-						terrain: 'plain',
-						highlighted: false,
-						selectable: false,
-					}))
-			),
+		tiles: selectRandomMap().generator(),
 		highlightedTiles: [],
 		currentTurn: 'player',
 	},
 	phase: 'movement',
 };
-
 const gameReducer = (state: GameState, action: GameAction): GameState => {
 	switch (action.type) {
 		case 'SELECT_TILE':

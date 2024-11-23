@@ -12,7 +12,7 @@ export const Tile: React.FC<TileProps> = ({ tile, onClick }) => {
 	const getBackgroundColor = () => {
 		switch (tile.terrain) {
 			case 'plain':
-				return 'bg-stone-200';
+				return 'bg-amber-50';
 			case 'grass':
 				return 'bg-green-200';
 			case 'water':
@@ -20,13 +20,11 @@ export const Tile: React.FC<TileProps> = ({ tile, onClick }) => {
 			case 'mountain':
 				return 'bg-stone-400';
 			case 'forest':
-				return 'bg-green-400';
+				return 'bg-emerald-300';
 			default:
 				return 'bg-gray-100';
 		}
 	};
-
-	console.log('Rendering tile:', tile); // Debug log
 
 	return (
 		<div
@@ -40,17 +38,16 @@ export const Tile: React.FC<TileProps> = ({ tile, onClick }) => {
 						? 'cursor-pointer hover:ring-2 hover:ring-green-500'
 						: ''
 				}
-        hover:bg-yellow-100
+        hover:brightness-110
         transition-all duration-200
         flex items-center justify-center
         relative
       `}
 			onClick={() => {
-				console.log('Tile clicked:', tile.position); // Debug log
+				console.log('Tile clicked:', tile.position, 'Terrain:', tile.terrain);
 				onClick(tile.position);
 			}}
 		>
-			{/* Debug position display */}
 			<span className="text-xs text-gray-500 absolute top-1 left-1">
 				{tile.position.x},{tile.position.y}
 			</span>
