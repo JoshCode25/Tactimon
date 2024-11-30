@@ -1,10 +1,11 @@
 import { Position, TerrainType } from './common';
+import { Pokemon } from './pokemon';
 
 // src/types/map.ts
 export interface MapTile {
 	position: Position;
 	terrain: TerrainType;
-	unit?: string; // UUID of unit occupying the tile
+	unit?: Pokemon; // UUID of unit occupying the tile
 	highlighted?: boolean;
 	selectable?: boolean;
 }

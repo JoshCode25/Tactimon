@@ -3,6 +3,7 @@ import React, { createContext, useReducer, ReactNode } from 'react';
 import { GameState } from '../types/game';
 import { Position } from '../types/common';
 import { selectRandomMap } from '../config/maps';
+import { MapTile } from '../types/map';
 
 type GameAction =
 	| { type: 'SELECT_TILE'; payload: Position }
@@ -17,6 +18,15 @@ const initialState: GameState = {
 		currentTurn: 'player',
 	},
 	phase: 'movement',
+	map: {
+		getTile: function (position: Position): MapTile | undefined {
+			throw new Error('Function not implemented.');
+		},
+		isValidPosition: function (position: Position): boolean {
+			throw new Error('Function not implemented.');
+		},
+	},
+	units: {},
 };
 const gameReducer = (state: GameState, action: GameAction): GameState => {
 	switch (action.type) {
