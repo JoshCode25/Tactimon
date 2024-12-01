@@ -3,12 +3,15 @@ import React, { createContext, useReducer, ReactNode } from 'react';
 import { GameState } from '../types/game';
 import { Position } from '../types/common';
 import { selectRandomMap } from '../config/maps';
-import { MapTile } from '../types/map';
+import { MapState, MapTile } from '../types/map';
+import { MovementService } from '../services/movementService';
+import { Pokemon } from '../types/pokemon';
 
 type GameAction =
 	| { type: 'SELECT_TILE'; payload: Position }
-	| { type: 'HIGHLIGHT_TILES'; payload: Position[] }
-	| { type: 'SELECT_UNIT'; payload: string }
+	| { type: 'SELECT_UNIT'; payload: Pokemon }
+	| { type: 'SHOW_MOVEMENT_RANGE'; payload: Position[] }
+	| { type: 'MOVE_UNIT'; payload: { unit: Pokemon; to: Position } }
 	| { type: 'CHANGE_PHASE'; payload: GameState['phase'] };
 
 const initialState: GameState = {
@@ -18,19 +21,59 @@ const initialState: GameState = {
 		currentTurn: 'player',
 	},
 	phase: 'movement',
+	validMoves: [],
 	map: {
-		getTile: function (position: Position): MapTile | undefined {
-			throw new Error('Function not implemented.');
+		getTile: (mapState: MapState, position: Position): MapTile | undefined => {
+			const row = mapState.tiles[position.y];
+			return row ? row[position.x] : undefined;
 		},
-		isValidPosition: function (position: Position): boolean {
-			throw new Error('Function not implemented.');
+		isValidPosition: (mapState: MapState, position: Position): boolean => {
+			return (
+				position.y >= 0 &&
+				position.y < mapState.tiles.length &&
+				position.x >= 0 &&
+				position.x < mapState.tiles[0].length
+			);
 		},
 	},
 	units: {},
 };
+
 const gameReducer = (state: GameState, action: GameAction): GameState => {
 	switch (action.type) {
-		case 'SELECT_TILE':
+		case 'SELECT_TILE': {
+			// If we have a selected unit and this is a valid move, move the unit
+			if (
+				state.selectedUnit &&
+				state.validMoves.some(
+					(pos) => pos.x === action.payload.x && pos.y === action.payload.y
+				)
+			) {
+				return {
+					...state,
+					selectedUnit: undefined,
+					validMoves: [],
+					units: {
+						...state.units,
+						[state.selectedUnit.templateId]: {
+							...state.selectedUnit,
+							position: action.payload,
+						},
+					},
+					mapState: {
+						...state.mapState,
+						tiles: state.mapState.tiles.map((row) =>
+							row.map((tile) => ({
+								...tile,
+								unit:
+									tile.position === action.payload
+										? state.selectedUnit
+										: undefined,
+							}))
+						),
+					},
+				};
+			}
 			return {
 				...state,
 				mapState: {
@@ -38,21 +81,77 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 					selectedTile: action.payload,
 				},
 			};
+		}
 
-		case 'HIGHLIGHT_TILES':
+		case 'SELECT_UNIT': {
+			const validMoves = MovementService.getInstance().findValidMoves(
+				action.payload,
+				state.mapState
+			);
+
 			return {
 				...state,
+				selectedUnit: action.payload,
+				validMoves,
 				mapState: {
 					...state.mapState,
-					highlightedTiles: action.payload,
+					tiles: state.mapState.tiles.map((row) =>
+						row.map((tile) => ({
+							...tile,
+							highlighted: validMoves.some(
+								(pos) => pos.x === tile.position.x && pos.y === tile.position.y
+							),
+						}))
+					),
 				},
 			};
+		}
 
-		case 'SELECT_UNIT':
+		case 'SHOW_MOVEMENT_RANGE': {
 			return {
 				...state,
-				activeUnit: action.payload,
+				validMoves: action.payload,
+				mapState: {
+					...state.mapState,
+					tiles: state.mapState.tiles.map((row) =>
+						row.map((tile) => ({
+							...tile,
+							highlighted: action.payload.some(
+								(pos) => pos.x === tile.position.x && pos.y === tile.position.y
+							),
+						}))
+					),
+				},
 			};
+		}
+
+		case 'MOVE_UNIT': {
+			return {
+				...state,
+				selectedUnit: undefined,
+				validMoves: [],
+				units: {
+					...state.units,
+					[action.payload.unit.templateId]: {
+						...action.payload.unit,
+						position: action.payload.to,
+					},
+				},
+				mapState: {
+					...state.mapState,
+					tiles: state.mapState.tiles.map((row) =>
+						row.map((tile) => ({
+							...tile,
+							highlighted: false,
+							unit:
+								tile.position === action.payload.to
+									? action.payload.unit
+									: undefined,
+						}))
+					),
+				},
+			};
+		}
 
 		case 'CHANGE_PHASE':
 			return {

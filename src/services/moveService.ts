@@ -458,7 +458,7 @@ export class MoveService {
 		}
 
 		// Check if target is valid
-		const targetTile = gameState.map.getTile(targetPos);
+		const targetTile = gameState.map.getTile(gameState.mapState, targetPos);
 		const targetUnit = targetTile?.unit;
 
 		if (targetUnit) {
@@ -519,7 +519,9 @@ export class MoveService {
 		}
 
 		// Filter out any positions that are off the map
-		return affectedTiles.filter((pos) => gameState.map.isValidPosition(pos));
+		return affectedTiles.filter((pos) =>
+			gameState.map.isValidPosition(gameState.mapState, pos)
+		);
 	}
 
 	// Calculate combat effects of a move

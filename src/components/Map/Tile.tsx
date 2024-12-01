@@ -1,6 +1,7 @@
 // src/components/Map/Tile.tsx
 import React from 'react';
 import { MapTile } from '../../types/map';
+import { Unit } from './Unit';
 import { Position } from '../../types/common';
 
 interface TileProps {
@@ -43,16 +44,13 @@ export const Tile: React.FC<TileProps> = ({ tile, onClick }) => {
         flex items-center justify-center
         relative
       `}
-			onClick={() => {
-				console.log('Tile clicked:', tile.position, 'Terrain:', tile.terrain);
-				onClick(tile.position);
-			}}
+			onClick={() => onClick(tile.position)}
 		>
 			<span className="text-xs text-gray-500 absolute top-1 left-1">
 				{tile.position.x},{tile.position.y}
 			</span>
 
-			{tile.unit && <div className="w-12 h-12 bg-red-500 rounded-full" />}
+			{tile.unit && <Unit pokemon={tile.unit} selected={tile.highlighted} />}
 		</div>
 	);
 };
