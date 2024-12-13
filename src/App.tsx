@@ -1,45 +1,64 @@
-import React, { useEffect } from 'react';
-import { GameProvider } from './store/GameContext';
+import React, { useEffect, useContext } from 'react';
+import { GameProvider, GameContext } from './store/GameContext';
 import { GameMap } from './components/Map/GameMap';
 import pokemonService from './services/pokemonService';
 
-function App() {
+// Inner component to handle Pokemon creation
+const GameInitializer: React.FC = () => {
+	const { dispatch } = useContext(GameContext);
+
 	useEffect(() => {
-		const testPokemonCreation = async () => {
+		const initializePokemon = async () => {
 			try {
-				// Create a Charizard at level 50 at position (2,2)
-				const charizard = await pokemonService.createPokemon(
-					'charizard',
-					50,
-					{ x: 2, y: 2 },
+				// Create Pikachu at (2,2)
+				const pikachu = await pokemonService.createPokemon(
+					'pikachu',
+					25,
 					{
-						nickname: 'Flamey',
-						isLeader: true,
+						x: 2,
+						y: 2,
+					},
+					{
 						teamId: 'player',
+						isLeader: true,
+						nickname: 'Pika',
 					}
 				);
-				console.log('Created Pokemon:', charizard);
 
-				// Get the template data
-				const template = pokemonService.getTemplate(charizard.templateId);
-				console.log('Pokemon Template:', template);
+				// Create Gyarados at (6,4)
+				const gyarados = await pokemonService.createPokemon(
+					'gyarados',
+					30,
+					{
+						x: 6,
+						y: 4,
+					},
+					{
+						teamId: 'enemy',
+						isLeader: false,
+					}
+				);
 
-				// Create another Pokemon
-				const pikachu = await pokemonService.createPokemon('pikachu', 25, {
-					x: 3,
-					y: 3,
+				// Add Pokemon to the game state
+				dispatch({
+					type: 'ADD_UNITS',
+					payload: [pikachu, gyarados],
 				});
-				console.log('Created second Pokemon:', pikachu);
 			} catch (error) {
 				console.error('Error creating Pokemon:', error);
 			}
 		};
 
-		testPokemonCreation();
+		initializePokemon();
 	}, []); // Empty dependency array means this runs once on mount
 
+	return null;
+};
+
+function App() {
 	return (
 		<GameProvider>
+			<GameInitializer />
 			<GameMap />
 		</GameProvider>
 	);

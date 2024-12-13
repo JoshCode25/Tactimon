@@ -12,7 +12,8 @@ type GameAction =
 	| { type: 'SELECT_UNIT'; payload: Pokemon }
 	| { type: 'SHOW_MOVEMENT_RANGE'; payload: Position[] }
 	| { type: 'MOVE_UNIT'; payload: { unit: Pokemon; to: Position } }
-	| { type: 'CHANGE_PHASE'; payload: GameState['phase'] };
+	| { type: 'CHANGE_PHASE'; payload: GameState['phase'] }
+	| { type: 'ADD_UNITS'; payload: Pokemon[] };
 
 const initialState: GameState = {
 	mapState: {
@@ -158,6 +159,33 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 				...state,
 				phase: action.payload,
 			};
+
+		case 'ADD_UNITS': {
+			const newUnits = { ...state.units };
+			const newTiles = state.mapState.tiles.map((row) =>
+				row.map((tile) => ({ ...tile }))
+			);
+
+			action.payload.forEach((pokemon) => {
+				// Add to units dictionary
+				newUnits[pokemon.templateId] = pokemon;
+
+				// Add to map tiles
+				const { x, y } = pokemon.position;
+				if (newTiles[y] && newTiles[y][x]) {
+					newTiles[y][x].unit = pokemon;
+				}
+			});
+
+			return {
+				...state,
+				units: newUnits,
+				mapState: {
+					...state.mapState,
+					tiles: newTiles,
+				},
+			};
+		}
 
 		default:
 			return state;

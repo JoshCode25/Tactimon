@@ -10,8 +10,6 @@ interface GridProps {
 }
 
 export const Grid: React.FC<GridProps> = ({ mapState, onTileClick }) => {
-	console.log('Rendering Grid with mapState:', mapState); // Debug log
-
 	return (
 		<div
 			className="grid gap-0 bg-white p-4 rounded-lg shadow-lg"
