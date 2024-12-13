@@ -41,15 +41,75 @@ const initialState: GameState = {
 };
 
 const gameReducer = (state: GameState, action: GameAction): GameState => {
+	const clearHighlights = (tiles: MapTile[][]) => {
+		return tiles.map((row) =>
+			row.map((tile) => ({
+				...tile,
+				highlighted: false,
+				selectable: true,
+			}))
+		);
+	};
 	switch (action.type) {
 		case 'SELECT_TILE': {
-			// If we have a selected unit and this is a valid move, move the unit
+			const clickedTile =
+				state.mapState.tiles[action.payload.y][action.payload.x];
+
+			// If there's a unit on the clicked tile
+			if (clickedTile.unit) {
+				// Only allow selecting units on player's team during player's turn
+				if (
+					clickedTile.unit.teamId === 'player' &&
+					state.mapState.currentTurn === 'player'
+				) {
+					console.log('Calculating moves for:', clickedTile.unit);
+					// Select the unit and show its valid moves
+					const validMoves = MovementService.getInstance().findValidMoves(
+						clickedTile.unit,
+						state.mapState
+					);
+					console.log('Valid moves calculated:', validMoves);
+
+					return {
+						...state,
+						selectedUnit: clickedTile.unit,
+						validMoves,
+						mapState: {
+							...state.mapState,
+							tiles: state.mapState.tiles.map((row, y) =>
+								row.map((tile, x) => ({
+									...tile,
+									highlighted: validMoves.some(
+										(move) => move.x === x && move.y === y
+									),
+								}))
+							),
+						},
+					};
+				}
+				return state;
+			}
+
+			// If we have a selected unit and this is a valid move
 			if (
 				state.selectedUnit &&
 				state.validMoves.some(
 					(pos) => pos.x === action.payload.x && pos.y === action.payload.y
 				)
 			) {
+				// Get the old position
+				const oldPos = state.selectedUnit.position;
+
+				// Create new tiles array with unit moved
+				const newTiles = clearHighlights(state.mapState.tiles);
+				// Remove unit from old position
+				newTiles[oldPos.y][oldPos.x].unit = undefined;
+				// Add unit to new position
+				newTiles[action.payload.y][action.payload.x].unit = {
+					...state.selectedUnit,
+					position: action.payload,
+				};
+
 				return {
 					...state,
 					selectedUnit: undefined,
@@ -63,23 +123,19 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 					},
 					mapState: {
 						...state.mapState,
-						tiles: state.mapState.tiles.map((row) =>
-							row.map((tile) => ({
-								...tile,
-								unit:
-									tile.position === action.payload
-										? state.selectedUnit
-										: undefined,
-							}))
-						),
+						tiles: newTiles,
 					},
 				};
 			}
+
+			// If clicking on an empty tile with no unit selected
 			return {
 				...state,
+				selectedUnit: undefined,
+				validMoves: [],
 				mapState: {
 					...state.mapState,
-					selectedTile: action.payload,
+					tiles: clearHighlights(state.mapState.tiles),
 				},
 			};
 		}

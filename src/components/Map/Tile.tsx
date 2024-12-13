@@ -27,6 +27,16 @@ export const Tile: React.FC<TileProps> = ({ tile, onClick }) => {
 		}
 	};
 
+	const handleClick = () => {
+		// If there's a unit on this tile, log its info
+		if (tile.unit) {
+			console.log('Pokemon clicked:', tile.unit);
+		}
+
+		// Still call the original onClick handler
+		onClick(tile.position);
+	};
+
 	return (
 		<div
 			className={`
@@ -44,7 +54,7 @@ export const Tile: React.FC<TileProps> = ({ tile, onClick }) => {
         flex items-center justify-center
         relative
       `}
-			onClick={() => onClick(tile.position)}
+			onClick={handleClick}
 		>
 			<span className="text-xs text-gray-500 absolute top-1 left-1">
 				{tile.position.x},{tile.position.y}

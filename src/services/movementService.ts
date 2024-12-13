@@ -40,7 +40,7 @@ export class MovementService {
 		if (!template) return 3; // Default movement range
 
 		// Normalize speed to movement range
-		return Math.floor(template.baseStats.speed / 20) + 2;
+		return Math.floor(template.baseStats.speed / 35) + 2;
 	}
 
 	public getMovementCost(terrain: TerrainType, pokemon: Pokemon): number {
@@ -61,23 +61,17 @@ export class MovementService {
 	}
 
 	public findValidMoves(pokemon: Pokemon, mapState: MapState): Position[] {
+		console.log('Finding valid moves for pokemon:', pokemon);
 		const baseRange = this.calculateBaseMovementRange(pokemon);
+		console.log('Base movement range:', baseRange);
+
 		const validMoves: Position[] = [];
 
-		// Create a matrix for the grid
-		const matrix = mapState.tiles.map((row) =>
-			row.map((tile) => {
-				const cost = this.getMovementCost(tile.terrain, pokemon);
-				// Convert cost to 0 (unwalkable) or 1 (walkable)
-				return cost === Infinity ? 0 : 1;
-			})
-		);
-
-		// Create grid from matrix
-		const grid = new PF.Grid(matrix);
+		// Add current position as a valid move (for staying in place)
+		validMoves.push({ x: pokemon.position.x, y: pokemon.position.y });
 
 		// Check each tile within maximum possible range
-		const maxRange = baseRange * 2; // Account for diagonal movement
+		const maxRange = baseRange;
 		for (let dy = -maxRange; dy <= maxRange; dy++) {
 			for (let dx = -maxRange; dx <= maxRange; dx++) {
 				const x = pokemon.position.x + dx;
@@ -93,37 +87,32 @@ export class MovementService {
 					continue;
 				}
 
-				// Create a copy of the grid for pathfinding
-				const gridBackup = grid.clone();
-				const finder = new PF.AStarFinder({
-					diagonalMovement: PF.DiagonalMovement.Never,
-				});
+				// Skip if Manhattan distance is greater than movement range
+				if (Math.abs(dx) + Math.abs(dy) > maxRange) {
+					continue;
+				}
 
-				const path = finder.findPath(
-					pokemon.position.x,
-					pokemon.position.y,
-					x,
-					y,
-					gridBackup
-				);
+				// Skip if tile is occupied by another unit
+				const targetTile = mapState.tiles[y][x];
+				if (targetTile.unit && targetTile.unit !== pokemon) {
+					continue;
+				}
 
-				// Calculate movement cost along the path
-				if (path.length > 0) {
-					let totalCost = 0;
-					// Skip first position (current position)
-					for (let i = 1; i < path.length; i++) {
-						const tile = mapState.tiles[path[i][1]][path[i][0]];
-						totalCost += this.getMovementCost(tile.terrain, pokemon);
-					}
+				// Check if terrain is traversable
+				const terrainCost = this.getMovementCost(targetTile.terrain, pokemon);
+				if (terrainCost === Infinity) {
+					continue;
+				}
 
-					// Add position if within movement range
-					if (totalCost <= baseRange) {
-						validMoves.push({ x, y });
-					}
+				// Simple distance-based validation
+				const manhattanDistance = Math.abs(dx) + Math.abs(dy);
+				if (manhattanDistance * terrainCost <= baseRange) {
+					validMoves.push({ x, y });
 				}
 			}
 		}
 
+		console.log('Valid moves found:', validMoves);
 		return validMoves;
 	}
 }
