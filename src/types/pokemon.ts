@@ -1,4 +1,5 @@
 import { ElementalType, Position } from './common';
+import { TeamId } from './map';
 import { Move, LearnableMove } from './moves';
 
 export interface BaseStats {
@@ -52,8 +53,9 @@ export interface Pokemon {
 	status?: StatusEffect;
 	position: Position;
 	facing: 'north' | 'south' | 'east' | 'west';
-	teamId?: string;
+	teamId?: TeamId;
 	isLeader: boolean;
+	hasMoved: boolean;
 }
 
 // Cache for Pokemon templates to avoid repeated API calls

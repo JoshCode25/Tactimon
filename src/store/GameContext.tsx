@@ -3,7 +3,7 @@ import React, { createContext, useReducer, ReactNode } from 'react';
 import { GameState } from '../types/game';
 import { Position } from '../types/common';
 import { selectRandomMap } from '../config/maps';
-import { MapState, MapTile } from '../types/map';
+import { MapState, MapTile, TeamId } from '../types/map';
 import { MovementService } from '../services/movementService';
 import { Pokemon } from '../types/pokemon';
 
@@ -13,13 +13,14 @@ type GameAction =
 	| { type: 'SHOW_MOVEMENT_RANGE'; payload: Position[] }
 	| { type: 'MOVE_UNIT'; payload: { unit: Pokemon; to: Position } }
 	| { type: 'CHANGE_PHASE'; payload: GameState['phase'] }
-	| { type: 'ADD_UNITS'; payload: Pokemon[] };
+	| { type: 'ADD_UNITS'; payload: Pokemon[] }
+	| { type: 'END_TURN'; payload: TeamId };
 
 const initialState: GameState = {
 	mapState: {
 		tiles: selectRandomMap().generator(),
 		highlightedTiles: [],
-		currentTurn: 'player',
+		currentTurn: 'team1',
 	},
 	phase: 'movement',
 	validMoves: [],
@@ -57,10 +58,10 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 
 			// If there's a unit on the clicked tile
 			if (clickedTile.unit) {
-				// Only allow selecting units on player's team during player's turn
+				// Only allow selecting units on current team's turn and if they haven't moved yet
 				if (
-					clickedTile.unit.teamId === 'player' &&
-					state.mapState.currentTurn === 'player'
+					clickedTile.unit.teamId === state.mapState.currentTurn &&
+					!clickedTile.unit.hasMoved
 				) {
 					console.log('Calculating moves for:', clickedTile.unit);
 					// Select the unit and show its valid moves
@@ -108,6 +109,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 				newTiles[action.payload.y][action.payload.x].unit = {
 					...state.selectedUnit,
 					position: action.payload,
+					hasMoved: true,
 				};
 
 				return {
@@ -119,6 +121,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 						[state.selectedUnit.templateId]: {
 							...state.selectedUnit,
 							position: action.payload,
+							hasMoved: true,
 						},
 					},
 					mapState: {
@@ -238,6 +241,35 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 				units: newUnits,
 				mapState: {
 					...state.mapState,
+					tiles: newTiles,
+				},
+			};
+		}
+
+		case 'END_TURN': {
+			// Clear selections and highlights
+			const newTiles = clearHighlights(state.mapState.tiles);
+
+			// Reset all Pokemon movement flags for the next turn
+			const resetUnits = Object.entries(state.units).reduce(
+				(acc, [id, unit]) => {
+					acc[id] = {
+						...unit,
+						hasMoved: false,
+					};
+					return acc;
+				},
+				{} as Record<string, Pokemon>
+			);
+
+			return {
+				...state,
+				selectedUnit: undefined,
+				validMoves: [],
+				units: resetUnits,
+				mapState: {
+					...state.mapState,
+					currentTurn: action.payload,
 					tiles: newTiles,
 				},
 			};

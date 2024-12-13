@@ -14,11 +14,9 @@ export const Unit: React.FC<UnitProps> = ({ pokemon, selected }) => {
 	const [isLoaded, setIsLoaded] = useState(false);
 
 	useEffect(() => {
-		// If template isn't in cache, it will be undefined. In that case, wait for it to be fetched
 		if (!template) {
 			const loadTemplate = async () => {
 				try {
-					// This will trigger the template to be fetched and cached
 					await pokemonService.createPokemon(
 						pokemon.templateId,
 						pokemon.level,
@@ -34,7 +32,7 @@ export const Unit: React.FC<UnitProps> = ({ pokemon, selected }) => {
 	}, [pokemon.templateId, pokemon.level, pokemon.position, template]);
 
 	const teamColorClass =
-		pokemon.teamId === 'player'
+		pokemon.teamId === 'team1'
 			? 'ring-blue-500 shadow-blue-500/50'
 			: 'ring-red-500 shadow-red-500/50';
 
@@ -66,6 +64,7 @@ export const Unit: React.FC<UnitProps> = ({ pokemon, selected }) => {
         ${teamColorClass}
         rounded-lg
         shadow-lg
+        ${pokemon.hasMoved ? 'opacity-60' : ''}
       `}
 		>
 			<img
@@ -75,6 +74,7 @@ export const Unit: React.FC<UnitProps> = ({ pokemon, selected }) => {
           w-12 h-12 object-contain
           transition-opacity duration-200
           ${isLoaded ? 'opacity-100' : 'opacity-0'}
+          ${pokemon.hasMoved ? 'grayscale' : ''}
         `}
 				onLoad={() => setIsLoaded(true)}
 			/>
@@ -95,6 +95,27 @@ export const Unit: React.FC<UnitProps> = ({ pokemon, selected }) => {
 			{/* Leader indicator */}
 			{pokemon.isLeader && (
 				<div className="absolute top-0 left-1 text-yellow-500">★</div>
+			)}
+
+			{/* Moved indicator */}
+			{pokemon.hasMoved && (
+				<div className="absolute inset-0 flex items-center justify-center">
+					<div className="bg-black bg-opacity-30 rounded-full p-1">
+						<svg
+							className="w-6 h-6 text-white opacity-80"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
+							<path
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								strokeWidth={2}
+								d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+							/>
+						</svg>
+					</div>
+				</div>
 			)}
 		</div>
 	);

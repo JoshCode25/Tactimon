@@ -1,6 +1,8 @@
 import { Position, TerrainType } from './common';
 import { Pokemon } from './pokemon';
 
+export type TeamId = 'team1' | 'team2';
+
 // src/types/map.ts
 export interface MapTile {
 	position: Position;
@@ -14,5 +16,5 @@ export interface MapState {
 	tiles: MapTile[][];
 	selectedTile?: Position;
 	highlightedTiles: Position[];
-	currentTurn: 'player' | 'enemy';
+	currentTurn: TeamId;
 }

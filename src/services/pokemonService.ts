@@ -12,6 +12,7 @@ import {
 	MoveTemplate,
 } from '../types/moves';
 import { ElementalType, Position } from '../types/common';
+import { TeamId } from '../types/map';
 
 // In-memory cache for Pokemon templates
 const templateCache: PokemonTemplateCache = {};
@@ -193,7 +194,7 @@ export class PokemonService {
 		options: {
 			nickname?: string;
 			isLeader?: boolean;
-			teamId?: string;
+			teamId?: TeamId;
 		} = {}
 	): Promise<Pokemon> {
 		const template = await this.fetchPokemonTemplate(identifier);
@@ -222,6 +223,7 @@ export class PokemonService {
 			facing: 'south',
 			teamId: options.teamId,
 			isLeader: options.isLeader || false,
+			hasMoved: false,
 		};
 
 		return pokemon;

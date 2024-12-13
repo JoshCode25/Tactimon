@@ -2,6 +2,7 @@ import React, { useEffect, useContext } from 'react';
 import { GameProvider, GameContext } from './store/GameContext';
 import { GameMap } from './components/Map/GameMap';
 import pokemonService from './services/pokemonService';
+import { TurnControls } from './components/TurnControls/TurnControls';
 
 // Inner component to handle Pokemon creation
 const GameInitializer: React.FC = () => {
@@ -19,7 +20,7 @@ const GameInitializer: React.FC = () => {
 						y: 2,
 					},
 					{
-						teamId: 'player',
+						teamId: 'team1',
 						isLeader: true,
 						nickname: 'Pika',
 					}
@@ -34,7 +35,7 @@ const GameInitializer: React.FC = () => {
 						y: 4,
 					},
 					{
-						teamId: 'enemy',
+						teamId: 'team2',
 						isLeader: false,
 					}
 				);
@@ -60,6 +61,7 @@ function App() {
 		<GameProvider>
 			<GameInitializer />
 			<GameMap />
+			<TurnControls />
 		</GameProvider>
 	);
 }
