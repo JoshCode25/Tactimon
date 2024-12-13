@@ -8,14 +8,31 @@ TactiMon is a tactical RPG where players control Pokemon in a sandbox environmen
 
 ### Core Mechanics
 
-#### Movement System
+#### Movement System [✓]
 
 - Grid-based movement with ranges determined by Pokemon's speed stat
-- Terrain effects (grass increases evasion, water slows ground types, etc.)
-- Map transition system requiring team proximity to leader
-- Simple in-map battle animations without scene transitions
+  - Base movement = floor(speed/35) + 2 [✓]
+  - Terrain effects (grass, water, mountains) affect movement [✓]
+  - Visual indicators for valid movement tiles [✓]
+- Team-based movement restrictions [✓]
+  - Units can only move during their team's turn [✓]
+  - Visual indicators for units that have already moved [✓]
+- Unit states and indicators [✓]
+  - Health bars with color coding [✓]
+  - Team indicators (blue/red rings) [✓]
+  - Level display [✓]
+  - Leader star indicator [✓]
+  - Movement status (grayed out when moved) [✓]
 
-#### Combat System
+#### Turn System [✓]
+
+- Alternating turns between Team 1 and Team 2 [✓]
+- End Turn button with turn indicator [✓]
+- Unit movement tracking per turn [✓]
+- Visual feedback for current turn [✓]
+- Unit state reset on turn change [✓]
+
+#### Combat System [TODO]
 
 **Move Types and Patterns**
 
@@ -26,10 +43,10 @@ TactiMon is a tactical RPG where players control Pokemon in a sandbox environmen
 - Diamond Pattern (affects tiles in a ♦ shape)
 - Square Pattern (affects all tiles in a square area)
 
-**Tactical Elements**
+**Tactical Elements** [In Progress]
 
 - Line of sight requirements
-- Team-based targeting rules
+- Team-based targeting rules [✓]
 - Movement effects (knockback, pull, self-movement)
 - Status effects and stat modifications
 - PP (Power Points) management
@@ -39,31 +56,31 @@ TactiMon is a tactical RPG where players control Pokemon in a sandbox environmen
 
 - Physical vs Special moves
 - STAB (Same Type Attack Bonus)
-- Complete type effectiveness system implemented
+- Complete type effectiveness system implemented [✓]
 - Critical hits
 - Random variance
 
-#### Pokemon System
+#### Pokemon System [Partially Complete]
 
-**Stats**
+**Stats** [✓]
 
-- HP, Attack, Defense, Sp. Attack, Sp. Defense, Speed
-- Level-based stat calculation
-- Status effects modify base stats
-- Stats scale with level (implemented)
+- HP, Attack, Defense, Sp. Attack, Sp. Defense, Speed [✓]
+- Level-based stat calculation [✓]
+- Status effects modify base stats [Implemented, not in use]
+- Stats scale with level [✓]
 
-**Experience System**
+**Experience System** [In progress]
 
 - Gain XP equal to defeated Pokemon's level
-- Required XP equals current level cubed
+- Required XP equals current level
 - Excess XP carries over to next level
 
-**Move Learning**
+**Move Learning** [✓]
 
-- Learn moves at specific levels (implemented)
-- Maximum of 4 moves per Pokemon
+- Learn moves at specific levels [✓]
+- Maximum of 4 moves per Pokemon [✓]
 - Moves can be replaced with new ones
-- Full move validation system implemented
+- Full move validation system implemented [✓]
 
 **Recruitment System**
 
@@ -74,28 +91,28 @@ TactiMon is a tactical RPG where players control Pokemon in a sandbox environmen
 - Must attempt recruitment while in range
 - Base recruitment difficulty calculated from stats
 
-#### World System
+#### World System [Partially Complete]
 
-**Map Features**
+**Map Features** [✓]
 
-- Dynamic grid-based map system (implemented)
-- Terrain visualization (implemented)
-- Unit placement on tiles (implemented)
-- Interactive tile selection (implemented)
+- Dynamic grid-based map system [✓]
+- Terrain visualization [✓]
+- Unit placement on tiles [✓]
+- Interactive tile selection [✓]
 
-**Map Types** (Implemented)
+**Map Types** [✓]
 
-- Valley Map: Central valley surrounded by mountains and forests
-- River Map: Strategic river crossings with varied terrain
-- Fortress Map: Defensive structure with surrounding moat
+- Valley Map: Central valley surrounded by mountains and forests [✓]
+- River Map: Strategic river crossings with varied terrain [✓]
+- Fortress Map: Defensive structure with surrounding moat [✓]
 
-**Terrain Types** (Implemented)
+**Terrain Types** [✓]
 
-- Plains: Basic movement terrain
-- Grass: Provides cover and tactical advantages
-- Water: Creates movement barriers and choke points
-- Mountain: Impassable terrain for most units
-- Forest: Provides defensive bonuses
+- Plains: Basic movement terrain [✓]
+- Grass: Provides cover and tactical advantages [✓]
+- Water: Creates movement barriers and choke points [✓]
+- Mountain: Impassable terrain for most units [✓]
+- Forest: Provides defensive bonuses [✓]
 
 ## Technical Implementation
 
@@ -109,7 +126,7 @@ src/
 │   │   ├── Tile.tsx         [✓] Individual tile with terrain
 │   │   ├── GameMap.tsx      [✓] Main map container
 │   │   ├── MapTransition.tsx
-│   │   └── Unit.tsx
+│   │   └── Unit.tsx         [✓] Pokemon unit rendering
 │   ├── Battle/
 │   │   ├── BattleScene.tsx
 │   │   ├── MovePreview.tsx  [✓] Move targeting preview
@@ -118,12 +135,12 @@ src/
 │   └── UI/
 │       ├── UnitInfo.tsx
 │       ├── MoveSelection.tsx
-│       ├── RangeIndicator.tsx
-│       └── TeamStatus.tsx
+│       ├── RangeIndicator.tsx [✓] Movement range visualization
+│       └── TurnControls.tsx  [✓] Turn management UI
 ├── services/
 │   ├── pokemonService.ts    [✓] Pokemon data and creation
 │   ├── moveService.ts       [✓] Move validation and effects
-│   ├── battleService.ts
+│   ├── movementService.ts   [✓] Movement calculation
 │   └── mapService.ts        [✓] Map management
 ├── types/
 │   ├── pokemon.ts           [✓] Pokemon interfaces
@@ -131,7 +148,7 @@ src/
 │   ├── map.ts              [✓] Map interfaces
 │   └── common.ts           [✓] Shared types
 └── utils/
-    ├── pathfinding.ts
+    ├── pathfinding.ts      [✓] Movement validation
     ├── lineOfSight.ts
     ├── damageFormulas.ts    [✓] Damage calculations
     └── typeEffectiveness.ts [✓] Type matchups
@@ -139,7 +156,7 @@ src/
 
 ### Development Phases
 
-1. **Phase 1: Core Systems** [In Progress]
+1. **Phase 1: Core Systems** [✓]
 
    - ✓ Grid-based map rendering with terrain visualization
    - ✓ Interactive tile system
@@ -147,9 +164,9 @@ src/
    - ✓ Pokemon data management and creation
    - ✓ Move system implementation
    - ✓ Type effectiveness system
-   - Basic Pokemon movement [TODO]
-   - Simple combat system [TODO]
-   - Turn order management [TODO]
+   - ✓ Basic Pokemon movement
+   - ✓ Turn system
+   - Combat system [TODO]
 
 2. **Phase 2: Combat & Recruitment** [Next]
 
@@ -160,11 +177,11 @@ src/
    - Basic recruitment system
    - Team management
 
-3. **Phase 3: World System**
+3. **Phase 3: World System** [Partially Complete]
 
    - Map transition system
    - Spawn system
-   - Leader mechanics
+   - Leader mechanics [✓]
    - Territory control
    - Advanced AI behaviors
 
@@ -175,40 +192,43 @@ src/
    - Save/Load system
    - Tutorial system
 
-### Technical Considerations
-
-- React with TypeScript for type safety
-- CSS Grid for map system
-- Service-based architecture for game logic ✓
-- React Context for state management ✓
-- Efficient Pokemon data caching ✓
-- Modular move system ✓
-
 ### Recent Implementations
 
-1. **Pokemon Service**
+1. **Movement System**
 
-   - Pokemon template caching
-   - Stat calculation system
-   - Move learning system
-   - Evolution chain handling
+   - Speed-based movement range calculation
+   - Terrain cost system
+   - Movement validation
+   - Visual range indicators
+   - Unit position updating
 
-2. **Move Service**
+2. **Turn System**
 
-   - Complete type effectiveness chart
-   - Move validation system
-   - Area of effect calculations
-   - Team-based targeting rules
+   - Team-based turns
+   - Movement tracking
+   - Turn switching
+   - Unit state reset
+   - Visual indicators
 
-3. **Map System**
-   - Grid-based rendering
-   - Terrain visualization
-   - Unit placement
-   - Interactive tiles
+3. **UI Improvements**
+   - Enhanced unit visualization
+   - Team color coding
+   - Movement state indicators
+   - Health bars
+   - Turn controls
 
 ### Next Steps
 
-1. Implement Pokemon movement and pathfinding
-2. Create move preview system
-3. Develop basic combat flow
-4. Add turn management
+1. Implement basic attack system
+2. Add move selection UI
+3. Implement damage calculation
+4. Add simple battle animations
+
+### Technical Notes
+
+- Using React with TypeScript for type safety
+- CSS Grid for map system
+- Service-based architecture for game logic
+- React Context for state management
+- Efficient Pokemon data caching
+- Modular move system
