@@ -262,6 +262,22 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 				{} as Record<string, Pokemon>
 			);
 
+			// Update tiles with reset units
+			const updatedTiles = newTiles.map((row) =>
+				row.map((tile) => {
+					if (tile.unit) {
+						return {
+							...tile,
+							unit: {
+								...tile.unit,
+								hasMoved: false,
+							},
+						};
+					}
+					return tile;
+				})
+			);
+
 			return {
 				...state,
 				selectedUnit: undefined,
@@ -270,7 +286,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 				mapState: {
 					...state.mapState,
 					currentTurn: action.payload,
-					tiles: newTiles,
+					tiles: updatedTiles,
 				},
 			};
 		}
