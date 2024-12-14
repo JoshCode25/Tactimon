@@ -1,44 +1,50 @@
 // src/store/GameContext.tsx
 import React, { createContext, useReducer, ReactNode } from 'react';
-import { GameState } from '../types/game';
+import { GamePhase, GameState } from '../types/game';
 import { Position } from '../types/common';
 import { selectRandomMap } from '../config/maps';
 import { MapState, MapTile, TeamId } from '../types/map';
 import { MovementService } from '../services/movementService';
 import { Pokemon } from '../types/pokemon';
+import { Move } from '../types/moves';
+import { MoveService } from '../services/moveService';
 
 type GameAction =
-	| { type: 'SELECT_TILE'; payload: Position }
-	| { type: 'SELECT_UNIT'; payload: Pokemon }
-	| { type: 'SHOW_MOVEMENT_RANGE'; payload: Position[] }
-	| { type: 'MOVE_UNIT'; payload: { unit: Pokemon; to: Position } }
-	| { type: 'CHANGE_PHASE'; payload: GameState['phase'] }
-	| { type: 'ADD_UNITS'; payload: Pokemon[] }
-	| { type: 'END_TURN'; payload: TeamId };
+  | { type: 'SELECT_TILE'; payload: Position }
+  | { type: 'SELECT_UNIT'; payload: Pokemon }
+  | { type: 'SHOW_MOVEMENT_RANGE'; payload: Position[] }
+  | { type: 'MOVE_UNIT'; payload: { unit: Pokemon; to: Position } }
+  | { type: 'CHANGE_PHASE'; payload: GamePhase }
+  | { type: 'SELECT_MOVE'; payload: Move }
+  | { type: 'CANCEL_ATTACK' }
+  | { type: 'EXECUTE_ATTACK'; payload: { attacker: Pokemon; target: Pokemon; move: Move } }
+  | { type: 'ADD_UNITS'; payload: Pokemon[] }
+  | { type: 'END_TURN'; payload: TeamId };
 
 const initialState: GameState = {
-	mapState: {
-		tiles: selectRandomMap().generator(),
-		highlightedTiles: [],
-		currentTurn: 'team1',
-	},
-	phase: 'movement',
-	validMoves: [],
-	map: {
-		getTile: (mapState: MapState, position: Position): MapTile | undefined => {
-			const row = mapState.tiles[position.y];
-			return row ? row[position.x] : undefined;
-		},
-		isValidPosition: (mapState: MapState, position: Position): boolean => {
-			return (
-				position.y >= 0 &&
-				position.y < mapState.tiles.length &&
-				position.x >= 0 &&
-				position.x < mapState.tiles[0].length
-			);
-		},
-	},
-	units: {},
+  mapState: {
+    tiles: selectRandomMap().generator(),
+    highlightedTiles: [],
+    currentTurn: 'team1',
+  },
+  phase: 'movement',
+  validMoves: [],
+  validTargets: [],
+  map: {
+    getTile: (mapState: MapState, position: Position): MapTile | undefined => {
+      const row = mapState.tiles[position.y];
+      return row ? row[position.x] : undefined;
+    },
+    isValidPosition: (mapState: MapState, position: Position): boolean => {
+      return (
+        position.y >= 0 &&
+        position.y < mapState.tiles.length &&
+        position.x >= 0 &&
+        position.x < mapState.tiles[0].length
+      );
+    },
+  },
+  units: {},
 };
 
 const gameReducer = (state: GameState, action: GameAction): GameState => {
@@ -218,6 +224,102 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 				...state,
 				phase: action.payload,
 			};
+
+		case 'SELECT_MOVE': {
+			const validTargets = MoveService.getInstance().getValidTargets(
+				action.payload,
+				state.selectedUnit!,
+				state.mapState
+			);
+
+			return {
+				...state,
+				selectedMove: action.payload,
+				phase: 'combat',
+				validTargets,
+				mapState: {
+				...state.mapState,
+				tiles: state.mapState.tiles.map((row) =>
+					row.map((tile) => ({
+					...tile,
+					highlighted: validTargets.some(
+						(pos: Position) => pos.x === tile.position.x && pos.y === tile.position.y
+					),
+					}))
+				),
+				},
+			};
+		}
+
+
+		case 'CANCEL_ATTACK': {
+			return {
+				...state,
+				selectedMove: undefined,
+				phase: 'movement',
+				validTargets: [],
+				mapState: {
+				...state.mapState,
+				tiles: state.mapState.tiles.map((row) =>
+					row.map((tile) => ({
+					...tile,
+					highlighted: false,
+					}))
+				),
+				},
+			};
+		}
+
+		case 'EXECUTE_ATTACK': {
+			const { attacker, target, move } = action.payload;
+			const damage = MoveService.getInstance().calculateDamage(move, attacker, target);
+			
+			// Update target's HP
+			const updatedTarget = {
+				...target,
+				currentStats: {
+				...target.currentStats,
+				hp: Math.max(0, target.currentStats.hp - damage),
+				},
+			};
+
+			// Update the attacker's move PP
+			const updatedAttacker = {
+				...attacker,
+				moves: attacker.moves.map((m) =>
+				m.id === move.id ? { ...m, currentPP: m.currentPP - 1 } : m
+				),
+				hasMoved: true,
+			};
+
+			return {
+				...state,
+				selectedMove: undefined,
+				phase: 'movement',
+				validTargets: [],
+				units: {
+				...state.units,
+				[target.templateId]: updatedTarget,
+				[attacker.templateId]: updatedAttacker,
+				},
+				mapState: {
+				...state.mapState,
+				tiles: state.mapState.tiles.map((row) =>
+					row.map((tile) => ({
+					...tile,
+					highlighted: false,
+					unit:
+						tile.unit?.templateId === target.templateId
+						? updatedTarget
+						: tile.unit?.templateId === attacker.templateId
+						? updatedAttacker
+						: tile.unit,
+					}))
+				),
+				},
+			};
+		}
+
 
 		case 'ADD_UNITS': {
 			const newUnits = { ...state.units };

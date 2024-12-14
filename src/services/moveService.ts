@@ -1,5 +1,6 @@
 import { ElementalType, Position } from '../types/common';
 import { GameState } from '../types/game';
+import { MapState } from '../types/map';
 import {
 	Move,
 	MoveTemplate,
@@ -559,7 +560,7 @@ export class MoveService {
 		});
 	}
 
-	private calculateDamage(move: Move, user: Pokemon, target: Pokemon): number {
+	public calculateDamage(move: Move, user: Pokemon, target: Pokemon): number {
 		// Base damage formula similar to Pokemon games but simplified
 		const attackStat =
 			move.category === 'physical'
@@ -590,6 +591,50 @@ export class MoveService {
 		damage *= 0.85 + Math.random() * 0.15;
 
 		return Math.floor(damage);
+	}
+
+	public getValidTargets(move: Move, user: Pokemon, mapState: MapState): Position[] {
+		const validTargets: Position[] = [];
+		const baseRange = 1; // For now, keeping it simple with adjacent tiles only
+
+		// Check each adjacent tile
+		const directions = [
+		{ x: 0, y: 1 },  // down
+		{ x: 0, y: -1 }, // up
+		{ x: 1, y: 0 },  // right
+		{ x: -1, y: 0 }, // left
+		];
+
+		for (const dir of directions) {
+		const targetPos = {
+			x: user.position.x + dir.x,
+			y: user.position.y + dir.y
+		};
+
+		// Skip if out of bounds
+		if (targetPos.y < 0 || targetPos.y >= mapState.tiles.length ||
+			targetPos.x < 0 || targetPos.x >= mapState.tiles[0].length) {
+			continue;
+		}
+
+		const targetTile = mapState.tiles[targetPos.y][targetPos.x];
+		
+		// Skip if no unit on tile and move requires a target
+		if (!targetTile.unit && !move.tactical.targeting.affectsEmpty) {
+			continue;
+		}
+
+		// Skip if unit is on same team and move can't target allies
+		if (targetTile.unit && 
+			targetTile.unit.teamId === user.teamId && 
+			!move.tactical.targeting.affectsAllies) {
+			continue;
+		}
+
+		validTargets.push(targetPos);
+		}
+
+		return validTargets;
 	}
 
 	// Helper methods for pattern calculation
