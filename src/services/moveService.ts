@@ -393,6 +393,7 @@ export class MoveService {
 		target: Pokemon
 	): number {
 		const targetTemplate = this.getPokemonTemplate(target.templateId);
+		console.log(target, targetTemplate);
 		if (!targetTemplate) return 1;
 
 		let multiplier = 1;
@@ -585,7 +586,9 @@ export class MoveService {
 
 		// Apply type effectiveness (would need a type chart)
 		const typeMultiplier = this.calculateTypeEffectiveness(move.type, target);
+		console.log(typeMultiplier, damage);
 		damage *= typeMultiplier;
+		console.log(damage);
 
 		// Add some randomness (85-100% of calculated damage)
 		damage *= 0.85 + Math.random() * 0.15;
@@ -593,45 +596,55 @@ export class MoveService {
 		return Math.floor(damage);
 	}
 
-	public getValidTargets(move: Move, user: Pokemon, mapState: MapState): Position[] {
+	public getValidTargets(
+		move: Move,
+		user: Pokemon,
+		mapState: MapState
+	): Position[] {
 		const validTargets: Position[] = [];
 		const baseRange = 1; // For now, keeping it simple with adjacent tiles only
 
 		// Check each adjacent tile
 		const directions = [
-		{ x: 0, y: 1 },  // down
-		{ x: 0, y: -1 }, // up
-		{ x: 1, y: 0 },  // right
-		{ x: -1, y: 0 }, // left
+			{ x: 0, y: 1 }, // down
+			{ x: 0, y: -1 }, // up
+			{ x: 1, y: 0 }, // right
+			{ x: -1, y: 0 }, // left
 		];
 
 		for (const dir of directions) {
-		const targetPos = {
-			x: user.position.x + dir.x,
-			y: user.position.y + dir.y
-		};
+			const targetPos = {
+				x: user.position.x + dir.x,
+				y: user.position.y + dir.y,
+			};
 
-		// Skip if out of bounds
-		if (targetPos.y < 0 || targetPos.y >= mapState.tiles.length ||
-			targetPos.x < 0 || targetPos.x >= mapState.tiles[0].length) {
-			continue;
-		}
+			// Skip if out of bounds
+			if (
+				targetPos.y < 0 ||
+				targetPos.y >= mapState.tiles.length ||
+				targetPos.x < 0 ||
+				targetPos.x >= mapState.tiles[0].length
+			) {
+				continue;
+			}
 
-		const targetTile = mapState.tiles[targetPos.y][targetPos.x];
-		
-		// Skip if no unit on tile and move requires a target
-		if (!targetTile.unit && !move.tactical.targeting.affectsEmpty) {
-			continue;
-		}
+			const targetTile = mapState.tiles[targetPos.y][targetPos.x];
 
-		// Skip if unit is on same team and move can't target allies
-		if (targetTile.unit && 
-			targetTile.unit.teamId === user.teamId && 
-			!move.tactical.targeting.affectsAllies) {
-			continue;
-		}
+			// Skip if no unit on tile and move requires a target
+			if (!targetTile.unit && !move.tactical.targeting.affectsEmpty) {
+				continue;
+			}
 
-		validTargets.push(targetPos);
+			// Skip if unit is on same team and move can't target allies
+			if (
+				targetTile.unit &&
+				targetTile.unit.teamId === user.teamId &&
+				!move.tactical.targeting.affectsAllies
+			) {
+				continue;
+			}
+
+			validTargets.push(targetPos);
 		}
 
 		return validTargets;
