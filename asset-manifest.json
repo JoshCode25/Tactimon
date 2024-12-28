@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/JoshCode25/Tactimon/static/css/main.ef8c3abd.css",
+    "main.js": "/JoshCode25/Tactimon/static/js/main.c2818f42.js",
+    "static/js/453.024d992f.chunk.js": "/JoshCode25/Tactimon/static/js/453.024d992f.chunk.js",
+    "index.html": "/JoshCode25/Tactimon/index.html",
+    "main.ef8c3abd.css.map": "/JoshCode25/Tactimon/static/css/main.ef8c3abd.css.map",
+    "main.c2818f42.js.map": "/JoshCode25/Tactimon/static/js/main.c2818f42.js.map",
+    "453.024d992f.chunk.js.map": "/JoshCode25/Tactimon/static/js/453.024d992f.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.ef8c3abd.css",
+    "static/js/main.c2818f42.js"
+  ]
+}
