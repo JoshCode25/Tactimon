@@ -64,7 +64,7 @@ export const Unit: React.FC<UnitProps> = ({ pokemon, selected }) => {
         ${teamColorClass}
         rounded-lg
         shadow-lg
-        ${pokemon.hasMoved ? 'opacity-60' : ''}
+        ${pokemon.hasMoved && pokemon.hasAttacked ? 'opacity-60' : ''}
       `}
 		>
 			<img
@@ -97,8 +97,8 @@ export const Unit: React.FC<UnitProps> = ({ pokemon, selected }) => {
 				<div className="absolute top-0 left-1 text-yellow-500">★</div>
 			)}
 
-			{/* Moved indicator */}
-			{pokemon.hasMoved && (
+			{/* Moved/Attacked indicator */}
+			{pokemon.hasMoved && pokemon.hasAttacked && (
 				<div className="absolute inset-0 flex items-center justify-center">
 					<div className="bg-black bg-opacity-30 rounded-full p-1">
 						<svg

@@ -56,6 +56,7 @@ export interface Pokemon {
 	teamId?: TeamId;
 	isLeader: boolean;
 	hasMoved: boolean;
+	hasAttacked: boolean;
 }
 
 // Cache for Pokemon templates to avoid repeated API calls

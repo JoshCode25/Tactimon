@@ -10,41 +10,44 @@ import { Move } from '../types/moves';
 import { MoveService } from '../services/moveService';
 
 type GameAction =
-  | { type: 'SELECT_TILE'; payload: Position }
-  | { type: 'SELECT_UNIT'; payload: Pokemon }
-  | { type: 'SHOW_MOVEMENT_RANGE'; payload: Position[] }
-  | { type: 'MOVE_UNIT'; payload: { unit: Pokemon; to: Position } }
-  | { type: 'CHANGE_PHASE'; payload: GamePhase }
-  | { type: 'SELECT_MOVE'; payload: Move }
-  | { type: 'CANCEL_ATTACK' }
-  | { type: 'EXECUTE_ATTACK'; payload: { attacker: Pokemon; target: Pokemon; move: Move } }
-  | { type: 'ADD_UNITS'; payload: Pokemon[] }
-  | { type: 'END_TURN'; payload: TeamId };
+	| { type: 'SELECT_TILE'; payload: Position }
+	| { type: 'SELECT_UNIT'; payload: Pokemon }
+	| { type: 'SHOW_MOVEMENT_RANGE'; payload: Position[] }
+	| { type: 'MOVE_UNIT'; payload: { unit: Pokemon; to: Position } }
+	| { type: 'CHANGE_PHASE'; payload: GamePhase }
+	| { type: 'SELECT_MOVE'; payload: Move }
+	| { type: 'CANCEL_ATTACK' }
+	| {
+			type: 'EXECUTE_ATTACK';
+			payload: { attacker: Pokemon; target: Pokemon; move: Move };
+	  }
+	| { type: 'ADD_UNITS'; payload: Pokemon[] }
+	| { type: 'END_TURN'; payload: TeamId };
 
 const initialState: GameState = {
-  mapState: {
-    tiles: selectRandomMap().generator(),
-    highlightedTiles: [],
-    currentTurn: 'team1',
-  },
-  phase: 'movement',
-  validMoves: [],
-  validTargets: [],
-  map: {
-    getTile: (mapState: MapState, position: Position): MapTile | undefined => {
-      const row = mapState.tiles[position.y];
-      return row ? row[position.x] : undefined;
-    },
-    isValidPosition: (mapState: MapState, position: Position): boolean => {
-      return (
-        position.y >= 0 &&
-        position.y < mapState.tiles.length &&
-        position.x >= 0 &&
-        position.x < mapState.tiles[0].length
-      );
-    },
-  },
-  units: {},
+	mapState: {
+		tiles: selectRandomMap().generator(),
+		highlightedTiles: [],
+		currentTurn: 'team1',
+	},
+	phase: 'movement',
+	validMoves: [],
+	validTargets: [],
+	map: {
+		getTile: (mapState: MapState, position: Position): MapTile | undefined => {
+			const row = mapState.tiles[position.y];
+			return row ? row[position.x] : undefined;
+		},
+		isValidPosition: (mapState: MapState, position: Position): boolean => {
+			return (
+				position.y >= 0 &&
+				position.y < mapState.tiles.length &&
+				position.x >= 0 &&
+				position.x < mapState.tiles[0].length
+			);
+		},
+	},
+	units: {},
 };
 
 const gameReducer = (state: GameState, action: GameAction): GameState => {
@@ -64,18 +67,40 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 
 			// If there's a unit on the clicked tile
 			if (clickedTile.unit) {
-				// Only allow selecting units on current team's turn and if they haven't moved yet
-				if (
-					clickedTile.unit.teamId === state.mapState.currentTurn &&
-					!clickedTile.unit.hasMoved
-				) {
-					console.log('Calculating moves for:', clickedTile.unit);
-					// Select the unit and show its valid moves
-					const validMoves = MovementService.getInstance().findValidMoves(
-						clickedTile.unit,
-						state.mapState
+				// Get the most up-to-date unit state from the units record
+				const currentUnit = state.units[clickedTile.unit.templateId];
+
+				console.log('SELECT_TILE - Unit states:', {
+					tileUnit: { ...clickedTile.unit },
+					recordUnit: { ...currentUnit },
+				});
+
+				// Only allow selecting units on current team's turn and if they haven't completed all actions
+				const unitCanAct =
+					currentUnit.teamId === state.mapState.currentTurn &&
+					!(currentUnit.hasMoved && currentUnit.hasAttacked);
+
+				if (unitCanAct) {
+					const validMoves = !currentUnit.hasMoved
+						? MovementService.getInstance().findValidMoves(
+								currentUnit,
+								state.mapState
+						  )
+						: [];
+
+					// Update the tiles with the current unit state
+					const updatedTiles = state.mapState.tiles.map((row, y) =>
+						row.map((tile, x) => ({
+							...tile,
+							unit:
+								tile.unit?.templateId === currentUnit.templateId
+									? currentUnit
+									: tile.unit,
+							highlighted: validMoves.some(
+								(move) => move.x === x && move.y === y
+							),
+						}))
 					);
-					console.log('Valid moves calculated:', validMoves);
 
 					return {
 						...state,
@@ -102,21 +127,26 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 				state.selectedUnit &&
 				state.validMoves.some(
 					(pos) => pos.x === action.payload.x && pos.y === action.payload.y
-				)
+				) &&
+				!state.selectedUnit.hasMoved // Only allow movement if unit hasn't moved
 			) {
 				// Get the old position
 				const oldPos = state.selectedUnit.position;
+
+				// Create updated unit with new position and moved status
+				const updatedUnit = {
+					...state.selectedUnit,
+					position: action.payload,
+					hasMoved: true,
+					hasAttacked: state.selectedUnit.hasAttacked,
+				};
 
 				// Create new tiles array with unit moved
 				const newTiles = clearHighlights(state.mapState.tiles);
 				// Remove unit from old position
 				newTiles[oldPos.y][oldPos.x].unit = undefined;
-				// Add unit to new position
-				newTiles[action.payload.y][action.payload.x].unit = {
-					...state.selectedUnit,
-					position: action.payload,
-					hasMoved: true,
-				};
+				// Add unit to new position with preserved states
+				newTiles[action.payload.y][action.payload.x].unit = updatedUnit;
 
 				return {
 					...state,
@@ -124,11 +154,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 					validMoves: [],
 					units: {
 						...state.units,
-						[state.selectedUnit.templateId]: {
-							...state.selectedUnit,
-							position: action.payload,
-							hasMoved: true,
-						},
+						[updatedUnit.templateId]: updatedUnit,
 					},
 					mapState: {
 						...state.mapState,
@@ -226,31 +252,57 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 			};
 
 		case 'SELECT_MOVE': {
+			console.log('SELECT_MOVE - Current unit state:', {
+				selectedUnit: { ...state.selectedUnit },
+				unitsRecord: state.selectedUnit
+					? { ...state.units[state.selectedUnit.templateId] }
+					: null,
+			});
+
+			// Check if unit exists in both locations and has already attacked
+			const unitFromState = state.selectedUnit;
+			const unitFromRecord = unitFromState
+				? state.units[unitFromState.templateId]
+				: null;
+
+			if (!unitFromState || !unitFromRecord || unitFromRecord.hasAttacked) {
+				console.log(
+					'Attack prevented - Unit has already attacked or is invalid'
+				);
+				return state;
+			}
+
 			const validTargets = MoveService.getInstance().getValidTargets(
 				action.payload,
-				state.selectedUnit!,
+				unitFromRecord, // Use the record version which should have the most up-to-date state
 				state.mapState
 			);
 
 			return {
 				...state,
+				selectedUnit: unitFromRecord, // Update selectedUnit to use the record version
 				selectedMove: action.payload,
 				phase: 'combat',
 				validTargets,
 				mapState: {
-				...state.mapState,
-				tiles: state.mapState.tiles.map((row) =>
-					row.map((tile) => ({
-					...tile,
-					highlighted: validTargets.some(
-						(pos: Position) => pos.x === tile.position.x && pos.y === tile.position.y
+					...state.mapState,
+					tiles: state.mapState.tiles.map((row) =>
+						row.map((tile) => ({
+							...tile,
+							// Update the unit in the tile if it matches
+							unit:
+								tile.unit?.templateId === unitFromRecord.templateId
+									? unitFromRecord
+									: tile.unit,
+							highlighted: validTargets.some(
+								(pos: Position) =>
+									pos.x === tile.position.x && pos.y === tile.position.y
+							),
+						}))
 					),
-					}))
-				),
 				},
 			};
 		}
-
 
 		case 'CANCEL_ATTACK': {
 			return {
@@ -259,27 +311,40 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 				phase: 'movement',
 				validTargets: [],
 				mapState: {
-				...state.mapState,
-				tiles: state.mapState.tiles.map((row) =>
-					row.map((tile) => ({
-					...tile,
-					highlighted: false,
-					}))
-				),
+					...state.mapState,
+					tiles: state.mapState.tiles.map((row) =>
+						row.map((tile) => ({
+							...tile,
+							highlighted: false,
+						}))
+					),
 				},
 			};
 		}
 
 		case 'EXECUTE_ATTACK': {
 			const { attacker, target, move } = action.payload;
-			const damage = MoveService.getInstance().calculateDamage(move, attacker, target);
-			
+			console.log('Attack execution - Full payload:', {
+				attacker: { ...attacker },
+				target: { ...target },
+				move: { ...move },
+			});
+			//if the unit's already attacked, prevent another attack
+			if (attacker.hasAttacked) {
+				return state;
+			}
+			const damage = MoveService.getInstance().calculateDamage(
+				move,
+				attacker,
+				target
+			);
+
 			// Update target's HP
 			const updatedTarget = {
 				...target,
 				currentStats: {
-				...target.currentStats,
-				hp: Math.max(0, target.currentStats.hp - damage),
+					...target.currentStats,
+					hp: Math.max(0, target.currentStats.hp - damage),
 				},
 			};
 
@@ -287,39 +352,44 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 			const updatedAttacker = {
 				...attacker,
 				moves: attacker.moves.map((m) =>
-				m.id === move.id ? { ...m, currentPP: m.currentPP - 1 } : m
+					m.id === move.id ? { ...m, currentPP: m.currentPP - 1 } : m
 				),
-				hasMoved: true,
+				hasAttacked: true,
+				hasMoved: attacker.hasMoved,
 			};
 
+			console.log('Updated units after attack:', {
+				updatedAttacker: { ...updatedAttacker },
+				updatedTarget: { ...updatedTarget },
+				damage,
+			});
 			return {
 				...state,
 				selectedMove: undefined,
 				phase: 'movement',
 				validTargets: [],
 				units: {
-				...state.units,
-				[target.templateId]: updatedTarget,
-				[attacker.templateId]: updatedAttacker,
+					...state.units,
+					[target.templateId]: updatedTarget,
+					[attacker.templateId]: updatedAttacker,
 				},
 				mapState: {
-				...state.mapState,
-				tiles: state.mapState.tiles.map((row) =>
-					row.map((tile) => ({
-					...tile,
-					highlighted: false,
-					unit:
-						tile.unit?.templateId === target.templateId
-						? updatedTarget
-						: tile.unit?.templateId === attacker.templateId
-						? updatedAttacker
-						: tile.unit,
-					}))
-				),
+					...state.mapState,
+					tiles: state.mapState.tiles.map((row) =>
+						row.map((tile) => ({
+							...tile,
+							highlighted: false,
+							unit:
+								tile.unit?.templateId === target.templateId
+									? updatedTarget
+									: tile.unit?.templateId === attacker.templateId
+									? updatedAttacker
+									: tile.unit,
+						}))
+					),
 				},
 			};
 		}
-
 
 		case 'ADD_UNITS': {
 			const newUnits = { ...state.units };
@@ -358,6 +428,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 					acc[id] = {
 						...unit,
 						hasMoved: false,
+						hasAttacked: false,
 					};
 					return acc;
 				},
@@ -373,6 +444,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 							unit: {
 								...tile.unit,
 								hasMoved: false,
+								hasAttacked: false,
 							},
 						};
 					}

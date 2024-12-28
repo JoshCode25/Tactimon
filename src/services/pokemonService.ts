@@ -224,6 +224,7 @@ export class PokemonService {
 			teamId: options.teamId,
 			isLeader: options.isLeader || false,
 			hasMoved: false,
+			hasAttacked: false,
 		};
 
 		return pokemon;
