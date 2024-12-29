@@ -12,6 +12,7 @@ import { MoveService } from '../services/moveService';
 type GameAction =
 	| { type: 'SELECT_TILE'; payload: Position }
 	| { type: 'SELECT_UNIT'; payload: Pokemon }
+	| { type: 'DESELECT_UNIT' }
 	| { type: 'SHOW_MOVEMENT_RANGE'; payload: Position[] }
 	| { type: 'MOVE_UNIT'; payload: { unit: Pokemon; to: Position } }
 	| { type: 'CHANGE_PHASE'; payload: GamePhase }
@@ -193,6 +194,26 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 							highlighted: validMoves.some(
 								(pos) => pos.x === tile.position.x && pos.y === tile.position.y
 							),
+						}))
+					),
+				},
+			};
+		}
+
+		case 'DESELECT_UNIT': {
+			return {
+				...state,
+				selectedUnit: undefined,
+				selectedMove: undefined,
+				validMoves: [],
+				validTargets: [],
+				phase: 'movement',
+				mapState: {
+					...state.mapState,
+					tiles: state.mapState.tiles.map((row) =>
+						row.map((tile) => ({
+							...tile,
+							highlighted: false,
 						}))
 					),
 				},

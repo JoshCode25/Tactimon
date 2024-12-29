@@ -27,7 +27,7 @@ export const BattleControls: React.FC = () => {
 	};
 
 	const handleDeselect = () => {
-		dispatch({ type: 'SELECT_TILE', payload: { x: -1, y: -1 } });
+		dispatch({ type: 'DESELECT_UNIT' });
 	};
 
 	const handleHeaderClick = () => {
