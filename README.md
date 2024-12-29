@@ -166,20 +166,29 @@ src/
    - ✓ Type effectiveness system
    - ✓ Basic Pokemon movement
    - ✓ Turn system
-   - Combat system [TODO]
+   - ✓ Preliminary Combat system
 
 2. **Phase 2: Combat & Recruitment** [Next]
 
-   - Move pattern implementation
-   - Area of effect preview
-   - Damage calculation
+   - Pokemon fainting implementation
+     - remove from map if Team 2
+     - remain on map in fainted condition for Team 1 - revival to be implemented
+   - Move range and initial area of effect implementation;
+     - Regular/physical moves have Range: 1 & area of effect: 1
+     - Special moves have Range: 1-3 & area of effect : 1
+   - Basic recruitement implementation: Higher probability of success based on
+     - recruiting pokemon's level higher than target pokemon level
+     - target pokemon's lower HP
+     - target pokemon status effect
+     - target pokemon making type(s) of recruiting pokemon
+   - Move Range and area of effect adjustments - Move database?
+     - develop different areas of effect
    - Status effects
-   - Basic recruitment system
-   - Team management
+   - Revive ability
 
 3. **Phase 3: World System** [Partially Complete]
 
-   - Map transition system
+   - Healing spaces
    - Spawn system
    - Leader mechanics [✓]
    - Territory control
