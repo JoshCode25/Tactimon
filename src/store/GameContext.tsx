@@ -12,6 +12,7 @@ import {
 	calculateExperience,
 	processExperienceGain,
 } from '../utils/experienceUtils';
+import { Notification } from '../types/notifications';
 
 type GameAction =
 	| { type: 'SELECT_TILE'; payload: Position }
@@ -27,7 +28,9 @@ type GameAction =
 			payload: { attacker: Pokemon; target: Pokemon; move: Move };
 	  }
 	| { type: 'ADD_UNITS'; payload: Pokemon[] }
-	| { type: 'END_TURN'; payload: TeamId };
+	| { type: 'END_TURN'; payload: TeamId }
+	| { type: 'ADD_NOTIFICATION'; payload: string }
+	| { type: 'DISMISS_NOTIFICATION'; payload: string };
 
 const initialState: GameState = {
 	mapState: {
@@ -53,6 +56,7 @@ const initialState: GameState = {
 		},
 	},
 	units: {},
+	notifications: [],
 };
 
 const gameReducer = (state: GameState, action: GameAction): GameState => {
@@ -83,7 +87,8 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 				// Only allow selecting units on current team's turn and if they haven't completed all actions
 				const unitCanAct =
 					currentUnit.teamId === state.mapState.currentTurn &&
-					!(currentUnit.hasMoved && currentUnit.hasAttacked);
+					!(currentUnit.hasMoved && currentUnit.hasAttacked) &&
+					!currentUnit.isFainted;
 
 				if (unitCanAct) {
 					const validMoves = !currentUnit.hasMoved
@@ -372,7 +377,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 				isFainted,
 			};
 
-			// Handle fainting and experience
+			// Create updated attacker
 			let updatedAttacker = {
 				...attacker,
 				moves: attacker.moves.map((m) =>
@@ -382,22 +387,53 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 				hasMoved: attacker.hasMoved,
 			};
 
+			// Handle experience and notifications if target faints
+			const newNotifications: Notification[] = [];
+
 			if (isFainted) {
 				const gainedExp = calculateExperience(target);
-				const { pokemon: leveledUpAttacker, moveMessages } =
-					processExperienceGain(updatedAttacker, gainedExp);
-
-				// Log move learning opportunities
-				moveMessages.forEach((msg) => console.log(msg));
+				const {
+					pokemon: leveledUpAttacker,
+					levelsGained,
+					moveMessages,
+				} = processExperienceGain(updatedAttacker, gainedExp);
 
 				updatedAttacker = leveledUpAttacker;
+
+				// Add defeat notification
+				newNotifications.push({
+					id: `defeat-${Date.now()}`,
+					message: `${attacker.nickname || attacker.name} defeated ${
+						target.nickname || target.name
+					} and gained ${gainedExp}xp!`,
+					timestamp: Date.now(),
+				});
+
+				// Add level up notification if applicable
+				if (levelsGained > 0) {
+					newNotifications.push({
+						id: `levelup-${Date.now()}`,
+						message: `${
+							attacker.nickname || attacker.name
+						} has leveled up to Level ${updatedAttacker.level}!`,
+						timestamp: Date.now(),
+					});
+				}
+
+				// Add move learning notifications
+				moveMessages.forEach((msg) => {
+					newNotifications.push({
+						id: `move-${Date.now()}-${Math.random()}`,
+						message: msg,
+						timestamp: Date.now(),
+					});
+				});
 			}
 
 			// Create new tiles, removing fainted Team 2 Pokemon
 			const newTiles = state.mapState.tiles.map((row) =>
 				row.map((tile) => {
 					if (tile.unit?.templateId === target.templateId) {
-						// Remove Team 2 Pokemon if fainted, otherwise update
 						if (isFainted && target.teamId === 'team2') {
 							return { ...tile, unit: undefined };
 						}
@@ -410,7 +446,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 				})
 			);
 
-			// Update units state, removing fainted Team 2 Pokemon
+			// Update units state
 			const newUnits = { ...state.units };
 			if (isFainted && target.teamId === 'team2') {
 				delete newUnits[target.templateId];
@@ -419,17 +455,20 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 			}
 			newUnits[attacker.templateId] = updatedAttacker;
 
-			return {
+			const newState = {
 				...state,
 				selectedMove: undefined,
-				phase: 'movement',
+				phase: 'movement' as GamePhase,
 				validTargets: [],
 				units: newUnits,
 				mapState: {
 					...state.mapState,
 					tiles: newTiles,
 				},
+				notifications: [...state.notifications, ...newNotifications],
 			};
+
+			return newState;
 		}
 
 		case 'ADD_UNITS': {
@@ -438,16 +477,19 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 				row.map((tile) => ({ ...tile }))
 			);
 
-			action.payload.forEach((pokemon) => {
-				// Add to units dictionary
-				newUnits[pokemon.templateId] = pokemon;
+			// Type guard to ensure we're working with Pokemon[]
+			if (Array.isArray(action.payload)) {
+				action.payload.forEach((pokemon: Pokemon) => {
+					// Add to units dictionary
+					newUnits[pokemon.templateId] = pokemon;
 
-				// Add to map tiles
-				const { x, y } = pokemon.position;
-				if (newTiles[y] && newTiles[y][x]) {
-					newTiles[y][x].unit = pokemon;
-				}
-			});
+					// Add to map tiles
+					const { x, y } = pokemon.position;
+					if (newTiles[y] && newTiles[y][x]) {
+						newTiles[y][x].unit = pokemon;
+					}
+				});
+			}
 
 			return {
 				...state,
@@ -503,6 +545,28 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 					currentTurn: action.payload,
 					tiles: updatedTiles,
 				},
+			};
+		}
+
+		case 'ADD_NOTIFICATION': {
+			const newNotification: Notification = {
+				id: `notification-${Date.now()}`,
+				message: action.payload,
+				timestamp: Date.now(),
+				dismissed: false,
+			};
+			return {
+				...state,
+				notifications: [...state.notifications, newNotification],
+			};
+		}
+
+		case 'DISMISS_NOTIFICATION': {
+			return {
+				...state,
+				notifications: state.notifications.filter(
+					(n) => n.id !== action.payload
+				),
 			};
 		}
 

@@ -5,7 +5,7 @@ import { Pokemon } from '../types/pokemon';
 export async function setupInitialTeams(): Promise<Pokemon[]> {
 	const team1Dugtrio = await pokemonService.createPokemon(
 		'dugtrio',
-		35,
+		85,
 		{ x: 1, y: 1 },
 		{
 			teamId: 'team1',
@@ -15,7 +15,7 @@ export async function setupInitialTeams(): Promise<Pokemon[]> {
 
 	const team2Skarmory = await pokemonService.createPokemon(
 		'skarmory',
-		25,
+		5,
 		{ x: 6, y: 6 },
 		{
 			teamId: 'team2',
