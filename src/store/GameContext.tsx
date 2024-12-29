@@ -8,6 +8,10 @@ import { MovementService } from '../services/movementService';
 import { Pokemon } from '../types/pokemon';
 import { Move } from '../types/moves';
 import { MoveService } from '../services/moveService';
+import {
+	calculateExperience,
+	processExperienceGain,
+} from '../utils/experienceUtils';
 
 type GameAction =
 	| { type: 'SELECT_TILE'; payload: Position }
@@ -345,15 +349,10 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 
 		case 'EXECUTE_ATTACK': {
 			const { attacker, target, move } = action.payload;
-			console.log('Attack execution - Full payload:', {
-				attacker: { ...attacker },
-				target: { ...target },
-				move: { ...move },
-			});
-			//if the unit's already attacked, prevent another attack
 			if (attacker.hasAttacked) {
 				return state;
 			}
+
 			const damage = MoveService.getInstance().calculateDamage(
 				move,
 				attacker,
@@ -361,16 +360,20 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 			);
 
 			// Update target's HP
+			const newHP = Math.max(0, target.currentStats.hp - damage);
+			const isFainted = newHP === 0;
+
 			const updatedTarget = {
 				...target,
 				currentStats: {
 					...target.currentStats,
-					hp: Math.max(0, target.currentStats.hp - damage),
+					hp: newHP,
 				},
+				isFainted,
 			};
 
-			// Update the attacker's move PP
-			const updatedAttacker = {
+			// Handle fainting and experience
+			let updatedAttacker = {
 				...attacker,
 				moves: attacker.moves.map((m) =>
 					m.id === move.id ? { ...m, currentPP: m.currentPP - 1 } : m
@@ -379,35 +382,52 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 				hasMoved: attacker.hasMoved,
 			};
 
-			console.log('Updated units after attack:', {
-				updatedAttacker: { ...updatedAttacker },
-				updatedTarget: { ...updatedTarget },
-				damage,
-			});
+			if (isFainted) {
+				const gainedExp = calculateExperience(target);
+				const { pokemon: leveledUpAttacker, moveMessages } =
+					processExperienceGain(updatedAttacker, gainedExp);
+
+				// Log move learning opportunities
+				moveMessages.forEach((msg) => console.log(msg));
+
+				updatedAttacker = leveledUpAttacker;
+			}
+
+			// Create new tiles, removing fainted Team 2 Pokemon
+			const newTiles = state.mapState.tiles.map((row) =>
+				row.map((tile) => {
+					if (tile.unit?.templateId === target.templateId) {
+						// Remove Team 2 Pokemon if fainted, otherwise update
+						if (isFainted && target.teamId === 'team2') {
+							return { ...tile, unit: undefined };
+						}
+						return { ...tile, unit: updatedTarget };
+					}
+					if (tile.unit?.templateId === attacker.templateId) {
+						return { ...tile, unit: updatedAttacker };
+					}
+					return tile;
+				})
+			);
+
+			// Update units state, removing fainted Team 2 Pokemon
+			const newUnits = { ...state.units };
+			if (isFainted && target.teamId === 'team2') {
+				delete newUnits[target.templateId];
+			} else {
+				newUnits[target.templateId] = updatedTarget;
+			}
+			newUnits[attacker.templateId] = updatedAttacker;
+
 			return {
 				...state,
 				selectedMove: undefined,
 				phase: 'movement',
 				validTargets: [],
-				units: {
-					...state.units,
-					[target.templateId]: updatedTarget,
-					[attacker.templateId]: updatedAttacker,
-				},
+				units: newUnits,
 				mapState: {
 					...state.mapState,
-					tiles: state.mapState.tiles.map((row) =>
-						row.map((tile) => ({
-							...tile,
-							highlighted: false,
-							unit:
-								tile.unit?.templateId === target.templateId
-									? updatedTarget
-									: tile.unit?.templateId === attacker.templateId
-									? updatedAttacker
-									: tile.unit,
-						}))
-					),
+					tiles: newTiles,
 				},
 			};
 		}

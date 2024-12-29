@@ -30,7 +30,7 @@ export class PokemonService {
 		return PokemonService.instance;
 	}
 
-	private calculateStats(baseStats: BaseStats, level: number): BaseStats {
+	public calculateStats(baseStats: BaseStats, level: number): BaseStats {
 		return {
 			hp: Math.floor((2 * baseStats.hp * level) / 100 + level + 10),
 			attack: Math.floor((2 * baseStats.attack * level) / 100 + 5),
@@ -215,7 +215,7 @@ export class PokemonService {
 			name: template.name,
 			nickname: options.nickname,
 			level,
-			experience: Math.pow(level, 3), // Simple exp calculation
+			experience: 0,
 			currentStats: { ...stats },
 			maxStats: { ...stats },
 			moves: availableMoves,
@@ -225,6 +225,7 @@ export class PokemonService {
 			isLeader: options.isLeader || false,
 			hasMoved: false,
 			hasAttacked: false,
+			isFainted: false,
 		};
 
 		return pokemon;

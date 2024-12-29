@@ -57,6 +57,7 @@ export interface Pokemon {
 	isLeader: boolean;
 	hasMoved: boolean;
 	hasAttacked: boolean;
+	isFainted: boolean;
 }
 
 // Cache for Pokemon templates to avoid repeated API calls

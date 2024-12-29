@@ -56,16 +56,17 @@ export const Unit: React.FC<UnitProps> = ({ pokemon, selected }) => {
 	return (
 		<div
 			className={`
-        absolute inset-0
-        flex items-center justify-center
-        transition-all duration-200
-        ${selected ? 'scale-110 ring-2' : 'ring-1'}
-        ring-opacity-50
-        ${teamColorClass}
-        rounded-lg
-        shadow-lg
-        ${pokemon.hasMoved && pokemon.hasAttacked ? 'opacity-60' : ''}
-      `}
+				absolute inset-0
+				flex items-center justify-center
+				transition-all duration-200
+				${selected ? 'scale-110 ring-2' : 'ring-1'}
+				ring-opacity-50
+				${teamColorClass}
+				rounded-lg
+				shadow-lg
+				${pokemon.hasMoved && pokemon.hasAttacked ? 'opacity-60' : ''}
+				${pokemon.isFainted ? 'grayscale brightness-50' : ''}
+			`}
 		>
 			<img
 				src={template.sprites.front}
@@ -115,6 +116,12 @@ export const Unit: React.FC<UnitProps> = ({ pokemon, selected }) => {
 							/>
 						</svg>
 					</div>
+				</div>
+			)}
+			{/* Fainted indicator */}
+			{pokemon.isFainted && (
+				<div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40">
+					<span className="text-white font-bold text-sm">FAINTED</span>
 				</div>
 			)}
 		</div>
