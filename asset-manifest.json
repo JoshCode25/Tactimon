@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/Tactimon/static/css/main.de8f6ddc.css",
-    "main.js": "/Tactimon/static/js/main.57dd08f0.js",
+    "main.css": "/Tactimon/static/css/main.5bf5b22d.css",
+    "main.js": "/Tactimon/static/js/main.9ccfb558.js",
     "static/js/453.024d992f.chunk.js": "/Tactimon/static/js/453.024d992f.chunk.js",
     "index.html": "/Tactimon/index.html",
-    "main.de8f6ddc.css.map": "/Tactimon/static/css/main.de8f6ddc.css.map",
-    "main.57dd08f0.js.map": "/Tactimon/static/js/main.57dd08f0.js.map",
+    "main.5bf5b22d.css.map": "/Tactimon/static/css/main.5bf5b22d.css.map",
+    "main.9ccfb558.js.map": "/Tactimon/static/js/main.9ccfb558.js.map",
     "453.024d992f.chunk.js.map": "/Tactimon/static/js/453.024d992f.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.de8f6ddc.css",
-    "static/js/main.57dd08f0.js"
+    "static/css/main.5bf5b22d.css",
+    "static/js/main.9ccfb558.js"
   ]
 }
