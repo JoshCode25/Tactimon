@@ -7,12 +7,15 @@ import { TurnControls } from '../TurnControls/TurnControls';
 import { BattleControls } from '../Battle/BattleControls';
 import { setupInitialTeams } from '../../utils/setupTeams';
 import NotificationContainer from '../UI/NotificationContainer';
+import pokemonQueService from '../../services/pokemonQueService';
 
 export const GameMap: React.FC = () => {
 	const { state, dispatch } = useContext(GameContext);
 
+	//Initialize pokemon Que and load initial teams
 	React.useEffect(() => {
 		async function loadTeams() {
+			pokemonQueService.loadPokemon(10);
 			const newPokemon = await setupInitialTeams();
 			dispatch({ type: 'ADD_UNITS', payload: newPokemon });
 		}

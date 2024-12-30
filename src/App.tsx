@@ -14,7 +14,7 @@ const GameInitializer: React.FC = () => {
 				// Create Pikachu at (2,2)
 				const pikachu = await pokemonService.createPokemon(
 					'pikachu',
-					25,
+					5,
 					{
 						x: 2,
 						y: 2,
@@ -27,9 +27,9 @@ const GameInitializer: React.FC = () => {
 				);
 
 				// Create Gyarados at (6,4)
-				const gyarados = await pokemonService.createPokemon(
-					'gyarados',
-					30,
+				const spearow = await pokemonService.createPokemon(
+					'spearow',
+					2,
 					{
 						x: 6,
 						y: 4,
@@ -43,7 +43,7 @@ const GameInitializer: React.FC = () => {
 				// Add Pokemon to the game state
 				dispatch({
 					type: 'ADD_UNITS',
-					payload: [pikachu, gyarados],
+					payload: [pikachu, spearow],
 				});
 			} catch (error) {
 				console.error('Error creating Pokemon:', error);

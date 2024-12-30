@@ -67,7 +67,9 @@ export const BattleControls: React.FC = () => {
 							<h3 className="font-bold text-lg">
 								{currentUnit.nickname || currentUnit.name}
 							</h3>
-							<span className="text-gray-600">Lv. {currentUnit.level}</span>
+							<span className="text-gray-600">
+								Lv. {currentUnit.level} ({currentUnit.experience}xp)
+							</span>
 						</div>
 
 						{/* Types */}

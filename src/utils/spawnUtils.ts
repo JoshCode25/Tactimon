@@ -3,6 +3,7 @@ import { Pokemon } from '../types/pokemon';
 import pokemonService from '../services/pokemonService';
 import { Position } from '../types/common';
 import { MapState } from '../types/map';
+import pokemonQueService from '../services/pokemonQueService';
 
 // List of available Pokemon to spawn - we can expand this later
 const SPAWNABLE_POKEMON = [
@@ -54,36 +55,5 @@ export function spawnNewPokemon(
 	const spawnPosition = findEmptyPosition(mapState);
 	if (!spawnPosition) return null;
 
-	// Calculate new level (0-2 levels higher)
-	const levelIncrease = Math.floor(Math.random() * 3);
-	const newLevel = faintedPokemon.level + levelIncrease;
-
-	try {
-		const template = pokemonService.getTemplate(getRandomPokemon());
-		if (!template) return null;
-
-		const stats = pokemonService.calculateStats(template.baseStats, newLevel);
-
-		const newPokemon: Pokemon = {
-			templateId: template.id,
-			name: template.name,
-			level: newLevel,
-			experience: 0,
-			currentStats: { ...stats },
-			maxStats: { ...stats },
-			moves: [], // We'll need to handle moves separately
-			position: spawnPosition,
-			facing: 'south',
-			teamId: 'team2',
-			isLeader: false,
-			hasMoved: false,
-			hasAttacked: false,
-			isFainted: false,
-		};
-
-		return newPokemon;
-	} catch (error) {
-		console.error('Error spawning new Pokemon:', error);
-		return null;
-	}
+	return pokemonQueService.getNextPokemon(faintedPokemon.level, spawnPosition);
 }
