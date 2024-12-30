@@ -367,7 +367,15 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 
 			const newTiles = state.mapState.tiles.map((row) => [...row]);
 			const newUnits = { ...state.units };
-			const newNotifications: Notification[] = [];
+			const newNotifications: Notification[] = [
+				{
+					id: `damage-${Date.now()}`,
+					message: `${attacker.nickname || attacker.name} uses ${
+						move.name
+					} against ${target.nickname || target.name} for ${damage} damage!`,
+					timestamp: Date.now(),
+				},
+			];
 
 			// Update target's HP
 			const newHP = Math.max(0, target.currentStats.hp - damage);
@@ -434,40 +442,41 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 
 				// Handle spawning new Pokemon if a wild Pokemon fainted
 				if (target.teamId === 'team2') {
+					console.log(target.templateId);
+					// Remove fainted Pokemon
+					delete newUnits[target.templateId];
+					const { x: tx, y: ty } = target.position;
+					newTiles[ty][tx].unit = undefined;
+
+					// Spawn new Pokemon
 					const newPokemon = spawnNewPokemon(target, state.mapState);
-
+					console.log(newPokemon);
 					if (newPokemon) {
-						// Add new Pokemon to units
 						newUnits[newPokemon.templateId] = newPokemon;
-
-						// Add new Pokemon to tiles
 						const { x, y } = newPokemon.position;
 						newTiles[y][x].unit = newPokemon;
 
-						// Add spawn notification
 						newNotifications.push({
 							id: `spawn-${Date.now()}`,
 							message: `A wild ${newPokemon.name} (Level ${newPokemon.level}) has appeared!`,
 							timestamp: Date.now(),
 						});
 					}
+				} else {
+					// For non-team2 Pokemon that faint, just update their state
+					newUnits[target.templateId] = updatedTarget;
 				}
-			}
-
-			// Update units and tiles with attacker and target
-			if (isFainted && target.teamId === 'team2') {
-				delete newUnits[target.templateId];
-				const { x, y } = target.position;
-				newTiles[y][x].unit = undefined;
 			} else {
+				// If target didn't faint, update their state normally
 				newUnits[target.templateId] = updatedTarget;
 			}
-			newUnits[attacker.templateId] = updatedAttacker;
 
-			// Update attacker's position in tiles
+			// Update attacker in both units and tiles
+			newUnits[attacker.templateId] = updatedAttacker;
 			const { x: ax, y: ay } = attacker.position;
 			newTiles[ay][ax].unit = updatedAttacker;
 
+			console.log(newUnits);
 			return {
 				...state,
 				selectedMove: undefined,

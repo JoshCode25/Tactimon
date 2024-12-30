@@ -64,7 +64,7 @@ export function processExperienceGain(
 			maxStats: updatedStats,
 			currentStats: {
 				...updatedStats,
-				hp: pokemon.currentStats.hp, // Maintain current HP
+				hp: updatedStats.hp, // restore to full HP on level up
 			},
 		},
 		levelsGained,
