@@ -13,6 +13,7 @@ import {
 	processExperienceGain,
 } from '../utils/experienceUtils';
 import { Notification } from '../types/notifications';
+import { spawnNewPokemon } from '../utils/spawnUtils';
 
 type GameAction =
 	| { type: 'SELECT_TILE'; payload: Position }
@@ -364,6 +365,10 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 				target
 			);
 
+			const newTiles = state.mapState.tiles.map((row) => [...row]);
+			const newUnits = { ...state.units };
+			const newNotifications: Notification[] = [];
+
 			// Update target's HP
 			const newHP = Math.max(0, target.currentStats.hp - damage);
 			const isFainted = newHP === 0;
@@ -388,8 +393,6 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 			};
 
 			// Handle experience and notifications if target faints
-			const newNotifications: Notification[] = [];
-
 			if (isFainted) {
 				const gainedExp = calculateExperience(target);
 				const {
@@ -428,34 +431,44 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 						timestamp: Date.now(),
 					});
 				});
+
+				// Handle spawning new Pokemon if a wild Pokemon fainted
+				if (target.teamId === 'team2') {
+					const newPokemon = spawnNewPokemon(target, state.mapState);
+
+					if (newPokemon) {
+						// Add new Pokemon to units
+						newUnits[newPokemon.templateId] = newPokemon;
+
+						// Add new Pokemon to tiles
+						const { x, y } = newPokemon.position;
+						newTiles[y][x].unit = newPokemon;
+
+						// Add spawn notification
+						newNotifications.push({
+							id: `spawn-${Date.now()}`,
+							message: `A wild ${newPokemon.name} (Level ${newPokemon.level}) has appeared!`,
+							timestamp: Date.now(),
+						});
+					}
+				}
 			}
 
-			// Create new tiles, removing fainted Team 2 Pokemon
-			const newTiles = state.mapState.tiles.map((row) =>
-				row.map((tile) => {
-					if (tile.unit?.templateId === target.templateId) {
-						if (isFainted && target.teamId === 'team2') {
-							return { ...tile, unit: undefined };
-						}
-						return { ...tile, unit: updatedTarget };
-					}
-					if (tile.unit?.templateId === attacker.templateId) {
-						return { ...tile, unit: updatedAttacker };
-					}
-					return tile;
-				})
-			);
-
-			// Update units state
-			const newUnits = { ...state.units };
+			// Update units and tiles with attacker and target
 			if (isFainted && target.teamId === 'team2') {
 				delete newUnits[target.templateId];
+				const { x, y } = target.position;
+				newTiles[y][x].unit = undefined;
 			} else {
 				newUnits[target.templateId] = updatedTarget;
 			}
 			newUnits[attacker.templateId] = updatedAttacker;
 
-			const newState = {
+			// Update attacker's position in tiles
+			const { x: ax, y: ay } = attacker.position;
+			newTiles[ay][ax].unit = updatedAttacker;
+
+			return {
 				...state,
 				selectedMove: undefined,
 				phase: 'movement' as GamePhase,
@@ -467,8 +480,6 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 				},
 				notifications: [...state.notifications, ...newNotifications],
 			};
-
-			return newState;
 		}
 
 		case 'ADD_UNITS': {
